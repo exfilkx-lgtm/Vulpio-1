@@ -14,18 +14,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract ZIP File
+      - name: Unzip Project Files
         run: |
-          unzip "vulpio (11).zip" -d extracted_app
-          # Move files to root if they are nested inside a folder
-          if [ -d "extracted_app/vulpio" ]; then
-            cp -r extracted_app/vulpio/* .
+          echo "Looking for zip files..."
+          ZIP_FILE=$(find . -maxdepth 1 -name "*.zip" | head -n 1)
+          if [ -n "$ZIP_FILE" ]; then
+            echo "Found zip file: $ZIP_FILE"
+            unzip -o "$ZIP_FILE" -d extracted
+            PUBSPEC_DIR=$(find extracted -name "pubspec.yaml" -exec dirname {} \;)
+            if [ -n "$PUBSPEC_DIR" ]; then
+              echo "Found pubspec.yaml in: $PUBSPEC_DIR"
+              cp -rn $PUBSPEC_DIR/* . || true
+              cp -rn $PUBSPEC_DIR/.* . 2>/dev/null || true
+            fi
           else
-            cp -r extracted_app/* .
+            echo "No zip file found, assuming repository is already unzipped."
           fi
 
       - name: Set up Java JDK
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
@@ -47,4 +54,3 @@ jobs:
         with:
           name: Vulpio-App-Release
           path: build/app/outputs/flutter-apk/app-release.apk
-
