@@ -1,0 +1,50 @@
+name: Unzip and Build Vulpio APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract ZIP File
+        run: |
+          unzip "vulpio (11).zip" -d extracted_app
+          # Move files to root if they are nested inside a folder
+          if [ -d "extracted_app/vulpio" ]; then
+            cp -r extracted_app/vulpio/* .
+          else
+            cp -r extracted_app/* .
+          fi
+
+      - name: Set up Java JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Android Release APK
+        run: flutter build apk --release --no-tree-shake-icons
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vulpio-App-Release
+          path: build/app/outputs/flutter-apk/app-release.apk
+
