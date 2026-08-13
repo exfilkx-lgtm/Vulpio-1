@@ -14,21 +14,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Unzip Project Files
+      - name: Unzip and Move Project Files to Root
         run: |
-          echo "Looking for zip files..."
+          echo "Unzipping file..."
           ZIP_FILE=$(find . -maxdepth 1 -name "*.zip" | head -n 1)
           if [ -n "$ZIP_FILE" ]; then
-            echo "Found zip file: $ZIP_FILE"
-            unzip -o "$ZIP_FILE" -d extracted
-            PUBSPEC_DIR=$(find extracted -name "pubspec.yaml" -exec dirname {} \;)
-            if [ -n "$PUBSPEC_DIR" ]; then
-              echo "Found pubspec.yaml in: $PUBSPEC_DIR"
-              cp -rn $PUBSPEC_DIR/* . || true
-              cp -rn $PUBSPEC_DIR/.* . 2>/dev/null || true
+            unzip -o "$ZIP_FILE" -d temp_extract
+            
+            # Find the directory containing pubspec.yaml
+            TARGET_DIR=$(find temp_extract -name "pubspec.yaml" -exec dirname {} \;)
+            
+            if [ -n "$TARGET_DIR" ]; then
+              echo "Moving files from $TARGET_DIR to current directory..."
+              shopt -s dotglob
+              cp -r $TARGET_DIR/* .
+              rm -rf temp_extract
+            else
+              echo "Could not find pubspec.yaml inside zip!"
+              exit 1
             fi
           else
-            echo "No zip file found, assuming repository is already unzipped."
+            echo "No zip file found, proceeding with repository files."
           fi
 
       - name: Set up Java JDK
